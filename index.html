@@ -8,12 +8,13 @@
     <style>
         body {
             margin: 0; padding: 0; overflow: hidden;
-            /* 背景色はJSで制御しますが、初期値を設定 */
+            /* 背景色はJSで制御 */
             background: radial-gradient(circle at center, #2b32b2 0%, #141e30 100%);
-            /* 背景の切り替わりをふんわりさせる */
             transition: background 5s ease;
             font-family: 'M PLUS Rounded 1c', sans-serif;
             color: #fff; touch-action: none;
+            /* 明るい空でも文字が見えるように影をつける */
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
         }
 
         #canvas-layer { display: block; width: 100vw; height: 100vh; }
@@ -27,23 +28,24 @@
 
         textarea {
             width: 100%; height: 50px; 
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.2);
             border: none;
             border-radius: 16px;
             color: #fff; padding: 15px 20px; font-size: 15px; outline: none; resize: none;
-            backdrop-filter: blur(4px); transition: all 0.3s; box-sizing: border-box; font-family: inherit;
+            backdrop-filter: blur(8px); transition: all 0.3s; box-sizing: border-box; font-family: inherit;
             text-align: center;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
         }
-        textarea::placeholder { color: rgba(255,255,255,0.7); } /* 背景が明るい時用に見やすく */
-        textarea:focus { background: rgba(255, 255, 255, 0.25); height: 80px; }
+        textarea::placeholder { color: rgba(255,255,255,0.8); }
+        textarea:focus { background: rgba(255, 255, 255, 0.3); height: 80px; }
 
         button {
-            margin-top: 15px; background: rgba(255, 255, 255, 0.2); border: none;
+            margin-top: 15px; background: rgba(255, 255, 255, 0.25); border: none;
             color: white; padding: 10px 30px; cursor: pointer;
             font-family: inherit; font-size: 14px; transition: all 0.3s;
             letter-spacing: 1px;
             border-radius: 12px;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.2); /* 明るい背景でも文字が見えるように */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
         button:hover { background: rgba(255, 255, 255, 0.4); transform: scale(1.05); }
 
@@ -59,7 +61,7 @@
         /* 星の詳細（ポップアップ） */
         #star-detail {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(20, 30, 48, 0.95); /* 夜空のような暗い背景 */
+            background: rgba(20, 30, 48, 0.95);
             border: 2px solid #fff;
             color: #fff;
             padding: 40px 30px;
@@ -82,7 +84,7 @@
 
         /* 右下メニュー */
         #controls { position: fixed; bottom: 15px; right: 15px; display: flex; gap: 15px; z-index: 50; }
-        .control-item { color: rgba(255,255,255,0.6); font-size: 20px; cursor: pointer; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+        .control-item { color: rgba(255,255,255,0.7); font-size: 20px; cursor: pointer; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
 
         @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
         .floating { animation: float 6s ease-in-out infinite; }
@@ -124,16 +126,16 @@
             let bgStyle = "";
 
             if (hour >= 5 && hour < 8) {
-                // 夜明け (Dawn): 群青色から朝焼けのピンクへ
-                bgStyle = "linear-gradient(to bottom, #2c3e50, #fd746c)";
+                // 夜明け (Dawn): 紺色 -> ぼんやり青 -> 朱色 (3段階グラデでじわじわ感を演出)
+                bgStyle = "linear-gradient(to bottom, #141e30 0%, #2a5298 50%, #e74c3c 100%)";
             } else if (hour >= 8 && hour < 16) {
-                // 日中 (Day): 落ち着いた空色（文字が読めるように少し濃い目）
-                bgStyle = "linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%)";
+                // 日中 (Day): 白っぽさのある淡い水色
+                bgStyle = "linear-gradient(to bottom, #89c4d9 0%, #dbeef2 100%)"; 
             } else if (hour >= 16 && hour < 19) {
-                // 夕暮れ (Sunset): 紫とオレンジのマジックアワー
-                bgStyle = "linear-gradient(to bottom, #667eea, #764ba2)";
+                // 夕暮れ (Sunset): オレンジから赤へのノスタルジックなグラデーション
+                bgStyle = "linear-gradient(to bottom, #ff512f 0%, #f09819 100%)";
             } else {
-                // 夜 (Night): 深い青と黒 (デフォルト)
+                // 夜 (Night): 深い青と黒
                 bgStyle = "radial-gradient(circle at center, #2b32b2 0%, #141e30 100%)";
             }
             document.body.style.background = bgStyle;
@@ -146,6 +148,7 @@
 
         /* --- 音響設定 --- */
         let audioCtx, masterGain, delayNode, isMuted = false;
+        // ヨナ抜き音階（和風で落ち着く音）
         const scale = [196.00, 220.00, 261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25];
 
         function startApp() {
@@ -155,6 +158,7 @@
                 masterGain = audioCtx.createGain();
                 masterGain.gain.value = 0.4;
                 
+                // リバーブ設定
                 delayNode = audioCtx.createDelay();
                 delayNode.delayTime.value = 0.7;
                 const feedback = audioCtx.createGain();
@@ -170,7 +174,7 @@
             const overlay = document.getElementById('start-overlay');
             overlay.style.opacity = 0;
             setTimeout(() => overlay.style.display = 'none', 800);
-            updateSky(); // スタート時にも念の為更新
+            updateSky(); // 念の為更新
         }
 
         function playTone(freq) {
@@ -213,9 +217,11 @@
                 this.x = x || Math.random() * width;
                 this.y = y || Math.random() * height;
                 
+                // ゆっくり漂う動き
                 this.vx = (Math.random() - 0.5) * 0.08; 
                 this.vy = (Math.random() - 0.5) * 0.08;
 
+                // サイズは小さく
                 this.size = size || Math.min(text.length / 3 + 3, 10);
                 
                 const hues = [200, 220, 280, 180];
@@ -232,6 +238,7 @@
                 if(this.x < 0 || this.x > width) this.vx *= -1;
                 if(this.y < 0 || this.y > height) this.vy *= -1;
 
+                // 自動演奏
                 if(Date.now() > this.nextSing) {
                     this.sing();
                     this.nextSing = Date.now() + Math.random() * 20000 + 10000;
@@ -281,10 +288,6 @@
             bubbles = savedData.map(d => new Bubble(d.text, d.date, d.id, d.x, d.y, d.size));
         }
 
-        function createBubble() {
-            createStar();
-        }
-
         function createStar() {
             const input = document.getElementById('thought-input');
             const text = input.value.trim();
@@ -306,7 +309,7 @@
         }
 
         function animate() {
-            ctx.clearRect(0, 0, width, height); // 背景はCSSで描画するのでCanvasは透明にクリアする
+            ctx.clearRect(0, 0, width, height);
 
             bubbles.forEach(b => {
                 b.update();
