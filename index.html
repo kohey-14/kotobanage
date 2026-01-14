@@ -2,21 +2,30 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>コトバナゲ</title>
     
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#141e30">
+    <meta name="mobile-web-app-capable" content="yes">
+
     <link rel="icon" href="icon.png">
     <link rel="apple-touch-icon" href="icon.png">
+
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@300;500;700&family=DotGothic16&display=swap" rel="stylesheet">
     <style>
         body {
             margin: 0; padding: 0; overflow: hidden;
-            /* 背景色はJSで制御（スカイ・エンジン） */
+            /* 背景色はJSで制御 */
             background: radial-gradient(circle at center, #2b32b2 0%, #141e30 100%);
             transition: background 5s ease;
             font-family: 'M PLUS Rounded 1c', sans-serif;
             color: #fff; touch-action: none;
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+            /* iPhoneの切り欠き（ノッチ）対応 */
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
         }
 
         #canvas-layer { display: block; width: 100vw; height: 100vh; }
@@ -26,6 +35,8 @@
             position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
             width: 85%; max-width: 400px; display: flex; flex-direction: column; align-items: center;
             z-index: 100; transition: opacity 0.5s;
+            /* iPhoneの下部バーと重ならないように調整 */
+            padding-bottom: env(safe-area-inset-bottom);
         }
 
         textarea {
@@ -35,7 +46,6 @@
             border-radius: 16px;
             color: #fff; padding: 15px 20px; font-size: 15px; outline: none; resize: none;
             backdrop-filter: blur(8px); transition: all 0.3s; box-sizing: border-box;
-            /* 入力エリアはドット文字（カタコト風） */
             font-family: 'DotGothic16', sans-serif;
             text-align: center;
             text-shadow: 0 1px 2px rgba(0,0,0,0.5);
@@ -46,7 +56,6 @@
         button {
             margin-top: 15px; background: rgba(255, 255, 255, 0.25); border: none;
             color: white; padding: 10px 30px; cursor: pointer;
-            /* ボタンもドット文字 */
             font-family: 'DotGothic16', sans-serif;
             font-size: 14px; transition: all 0.3s;
             letter-spacing: 1px;
@@ -58,9 +67,8 @@
         /* スタート画面 */
         #start-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            /* 背景を半透明にして、bodyの空色を透けさせる */
             background: rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(15px); /* すりガラス効果 */
+            backdrop-filter: blur(15px);
             z-index: 300;
             display: flex; justify-content: center; align-items: center; flex-direction: column;
             transition: opacity 0.8s;
@@ -94,12 +102,12 @@
             background: rgba(255, 255, 255, 0.2);
             color: #fff; padding: 12px 0; width: 100px; font-size: 16px; cursor: pointer; border:none;
             border-radius: 12px; font-weight: 700; transition: background 0.3s;
-            font-family: 'M PLUS Rounded 1c', sans-serif; /* 操作系は読みやすく */
+            font-family: 'M PLUS Rounded 1c', sans-serif;
         }
         .mini-btn:hover { background: rgba(255, 255, 255, 0.3); }
 
         /* 右下メニュー */
-        #controls { position: fixed; bottom: 15px; right: 15px; display: flex; gap: 15px; z-index: 50; }
+        #controls { position: fixed; bottom: 25px; right: 15px; display: flex; gap: 15px; z-index: 50; padding-bottom: env(safe-area-inset-bottom); }
         .control-item { color: rgba(255,255,255,0.7); font-size: 20px; cursor: pointer; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
 
         @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
@@ -142,25 +150,19 @@
             let bgStyle = "";
 
             if (hour >= 5 && hour < 8) {
-                // 夜明け (Dawn): 紺色 -> ぼんやり青 -> 朱色
                 bgStyle = "linear-gradient(to bottom, #141e30 0%, #2a5298 50%, #e74c3c 100%)";
             } else if (hour >= 8 && hour < 16) {
-                // 日中 (Day): 白っぽさのある淡い水色
                 bgStyle = "linear-gradient(to bottom, #89c4d9 0%, #dbeef2 100%)"; 
             } else if (hour >= 16 && hour < 19) {
-                // 夕暮れ (Sunset): オレンジから赤
                 bgStyle = "linear-gradient(to bottom, #ff512f 0%, #f09819 100%)";
             } else {
-                // 夜 (Night): 深い青と黒
                 bgStyle = "radial-gradient(circle at center, #2b32b2 0%, #141e30 100%)";
             }
             document.body.style.background = bgStyle;
         }
         
-        // 起動時に空の色を適用（スタート画面にも透けて見える）
         updateSky();
         setInterval(updateSky, 60000);
-
 
         /* --- 音響設定 --- */
         let audioCtx, masterGain, delayNode, isMuted = false;
@@ -188,7 +190,7 @@
             const overlay = document.getElementById('start-overlay');
             overlay.style.opacity = 0;
             setTimeout(() => overlay.style.display = 'none', 800);
-            updateSky(); // 念の為
+            updateSky(); 
         }
 
         function playTone(freq) {
@@ -221,7 +223,6 @@
         let width, height, bubbles = [], particles = [];
         let selectedBubble = null;
         
-        // 24時間 (ミリ秒)
         const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
         function initBubbles() {
@@ -256,7 +257,6 @@
                 const hues = [200, 220, 280, 180];
                 this.hue = hues[Math.floor(Math.random() * hues.length)];
                 
-                // 言葉から音色生成
                 let hash = 0;
                 for (let i = 0; i < text.length; i++) {
                     hash = text.charCodeAt(i) + ((hash << 5) - hash);
