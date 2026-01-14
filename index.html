@@ -7,6 +7,7 @@
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
     <meta name="theme-color" content="#141e30">
     <meta name="mobile-web-app-capable" content="yes">
 
@@ -15,27 +16,38 @@
 
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@300;500;700&family=DotGothic16&display=swap" rel="stylesheet">
     <style>
+        html {
+            height: 100%;
+            background-color: #141e30; /* バウンス時の背景色対策 */
+        }
         body {
             margin: 0; padding: 0; overflow: hidden;
+            width: 100%; height: 100%;
             /* 背景色はJSで制御 */
             background: radial-gradient(circle at center, #2b32b2 0%, #141e30 100%);
             transition: background 5s ease;
             font-family: 'M PLUS Rounded 1c', sans-serif;
             color: #fff; touch-action: none;
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-            /* iPhoneの切り欠き（ノッチ）対応 */
+            
+            /* iPhoneの切り欠き（ノッチ）対応：paddingでコンテンツを下にずらす */
             padding-top: env(safe-area-inset-top);
             padding-bottom: env(safe-area-inset-bottom);
+            box-sizing: border-box; /* paddingを含めてサイズ計算する */
         }
 
-        #canvas-layer { display: block; width: 100vw; height: 100vh; }
+        #canvas-layer { 
+            position: absolute; /* absoluteに変更して確実に背面に配置 */
+            top: 0; left: 0;
+            width: 100vw; height: 100vh; 
+            z-index: -1; /* コンテンツの後ろへ */
+        }
 
         /* 入力エリア */
         #input-area {
             position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
             width: 85%; max-width: 400px; display: flex; flex-direction: column; align-items: center;
             z-index: 100; transition: opacity 0.5s;
-            /* iPhoneの下部バーと重ならないように調整 */
             padding-bottom: env(safe-area-inset-bottom);
         }
 
@@ -148,17 +160,33 @@
             const now = new Date();
             const hour = now.getHours();
             let bgStyle = "";
+            let themeColor = "#141e30"; // デフォルトの色
 
             if (hour >= 5 && hour < 8) {
+                // 朝焼け
                 bgStyle = "linear-gradient(to bottom, #141e30 0%, #2a5298 50%, #e74c3c 100%)";
+                themeColor = "#141e30"; 
             } else if (hour >= 8 && hour < 16) {
+                // 日中
                 bgStyle = "linear-gradient(to bottom, #89c4d9 0%, #dbeef2 100%)"; 
+                themeColor = "#89c4d9";
             } else if (hour >= 16 && hour < 19) {
+                // 夕方
                 bgStyle = "linear-gradient(to bottom, #ff512f 0%, #f09819 100%)";
+                themeColor = "#ff512f";
             } else {
+                // 夜
                 bgStyle = "radial-gradient(circle at center, #2b32b2 0%, #141e30 100%)";
+                themeColor = "#141e30";
             }
+            
             document.body.style.background = bgStyle;
+            
+            // metaタグのテーマカラーも同時に更新（ブラウザUI用）
+            const metaThemeColor = document.querySelector("meta[name=theme-color]");
+            if(metaThemeColor) {
+                metaThemeColor.setAttribute("content", themeColor);
+            }
         }
         
         updateSky();
